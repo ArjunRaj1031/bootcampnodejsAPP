@@ -6,7 +6,7 @@
 
 This project demonstrates a complete **DevSecOps CI/CD pipeline**:
 
-```
+```text
 GitHub → Jenkins → Sonar Scanner → SonarQube → Snyk → Docker → DockerHub
 ```
 
@@ -19,12 +19,10 @@ GitHub → Jenkins → Sonar Scanner → SonarQube → Snyk → Docker → Docke
 1. Go to AWS → EC2 → Launch Instance
 2. Select:
 
-   * **Ubuntu Server 22.04 LTS**
-   * Instance: **t3.medium or higher (8GB recommended)**
+   * Ubuntu Server 22.04 LTS
+   * Instance: t3.medium or higher (8GB recommended)
 
 ### 🔐 Security Group
-
-Add inbound rules:
 
 | Port | Purpose   |
 | ---- | --------- |
@@ -44,7 +42,7 @@ Add inbound rules:
 
 ### 🔐 Open Ports
 
-Add:
+Add inbound rules:
 
 * 22
 * 8080
@@ -62,34 +60,24 @@ ssh -i <key.pem> ubuntu@<PUBLIC-IP>
 
 # 🔧 Step 2: Install Jenkins (Using Script)
 
-## 📂 Create Script
-
 ```bash
 vi jenkins_fresh_install.sh
 ```
 
-👉 Press `i` → paste Jenkins script → `ESC` → `:wq`
-
----
-
-## ▶️ Run Script
+👉 Press `i` → paste script → `ESC` → `:wq`
 
 ```bash
 chmod +x jenkins_fresh_install.sh
 sudo ./jenkins_fresh_install.sh
 ```
 
----
-
-## 🌐 Access Jenkins
+🌐 Access:
 
 ```
 http://<PUBLIC-IP>:8080
 ```
 
----
-
-## 🔑 Get Password
+🔑 Password:
 
 ```bash
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword
@@ -97,62 +85,48 @@ sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 
 ---
 
-# 🔧 Step 3: Install SonarQube (Server)
+# 🔧 Step 3: Install SonarQube
 
-## 📂 Create Script
+👉 Choose ONE option
+
+## 🔹 Same VM (Learning)
+
+```
+VM
+├── Jenkins (8080)
+└── SonarQube (9000)
+```
 
 ```bash
 vi sonar.sh
-```
-
----
-
-## ▶️ Run Script
-
-```bash
 chmod +x sonar.sh
 sudo ./sonar.sh
 ```
 
----
-
-## 🌐 Access SonarQube
+Access:
 
 ```
 http://<PUBLIC-IP>:9000
 ```
 
-Login:
-
-```
-admin / admin
-```
-
 ---
 
-# 🧠 SonarQube vs Sonar Scanner (IMPORTANT)
-
-### 🔹 SonarQube
-
-* Web UI (port 9000)
-* Stores results
-* Dashboard
-
-### 🔹 Sonar Scanner
-
-* CLI tool
-* Reads code
-* Sends analysis to SonarQube
-
----
-
-## 🎯 Flow
+## 🔹 Separate VM (Production)
 
 ```
-Code → Sonar Scanner → SonarQube → Dashboard
+VM1 → Jenkins
+VM2 → SonarQube
 ```
 
-👉 Without Scanner → No analysis ❌
+* Launch second VM
+* Open port 9000
+* Run same script
+
+Update:
+
+```bash
+SONAR_HOST_URL="http://<SONAR-VM-IP>:9000"
+```
 
 ---
 
@@ -172,6 +146,64 @@ sudo systemctl restart jenkins
 ---
 
 # 🔧 Step 5: Install Sonar Scanner
+
+---
+
+## 🧠 WHY THIS STEP IS REQUIRED
+
+👉 Installing SonarQube alone is NOT enough
+
+| Component     | Role                                  |
+| ------------- | ------------------------------------- |
+| SonarQube     | Server (UI, stores results)           |
+| Sonar Scanner | Client (analyzes code and sends data) |
+
+---
+
+## 🎯 How it works
+
+```
+Code → Jenkins → Sonar Scanner → SonarQube → Dashboard
+```
+
+👉 Without Scanner:
+
+```
+No scan → No data → Empty SonarQube dashboard ❌
+```
+
+---
+
+## 🚨 IMPORTANT NOTE
+
+👉 **Sonar Scanner MUST be installed on Jenkins machine**
+
+✔ Because pipeline runs on Jenkins
+✔ Jenkins executes:
+
+```bash
+sonar-scanner
+```
+
+---
+
+## ❌ Wrong Setup
+
+```
+Scanner installed on SonarQube VM
+```
+
+---
+
+## ✅ Correct Setup
+
+```
+Scanner installed on Jenkins VM
+```
+
+---
+
+## ▶️ Installation
 
 ```bash
 cd /opt
@@ -197,29 +229,27 @@ sudo npm install -g snyk
 
 # 🔑 Step 7: Generate Tokens
 
-## SonarQube Token
+## SonarQube
 
-SonarQube → My Account → Security → Generate Token
+My Account → Security → Generate Token
 
-## Snyk Token
+## Snyk
 
-Snyk → Account → API Token
+Account → API Token
 
 ---
 
 # ⚙️ Step 8: Jenkins Setup
 
-1. Open Jenkins
-2. Install suggested plugins
-3. Create admin user
+* Install suggested plugins
+* Create admin user
 
 ---
 
 # 📦 Step 9: Create Pipeline
 
-1. Click **New Item**
-2. Select **Pipeline**
-3. Paste Jenkinsfile
+* New Item → Pipeline
+* Paste Jenkinsfile
 
 ---
 
@@ -233,8 +263,8 @@ pipeline {
         DOCKER_IMAGE = "your-dockerhub-username/app"
         DOCKER_TAG = "latest"
         SONAR_HOST_URL = "http://<IP>:9000"
-        SONAR_TOKEN = "your-sonar-token"
-        SNYK_TOKEN = "your-snyk-token"
+        SONAR_TOKEN = "your-token"
+        SNYK_TOKEN = "your-token"
     }
 
     stages {
@@ -314,27 +344,12 @@ Build Now
 
 # ⚠️ Troubleshooting
 
-## Jenkins not starting
-
 ```bash
 sudo systemctl status jenkins
-```
-
-## SonarQube not starting
-
-```bash
 sudo systemctl status sonarqube
 ```
 
 👉 Wait 1–2 mins for first startup
-
----
-
-## Permission errors
-
-```bash
-sudo ./script.sh
-```
 
 ---
 
