@@ -1,83 +1,165 @@
-# 🚀 DevSecOps Pipeline using Jenkins, SonarQube, Snyk & Docker
+# 🚀 DevSecOps Pipeline Setup (Ubuntu 22.04 | AWS & Azure)
+
+---
 
 ## 📌 Project Overview
 
-This project demonstrates a **complete DevSecOps CI/CD pipeline**:
+This project demonstrates a complete **DevSecOps CI/CD pipeline**:
 
 ```
-GitHub → Jenkins → SonarQube → Snyk → Docker → Docker Hub
-```
-
-It covers:
-
-* Continuous Integration (CI)
-* Static Code Analysis (SAST)
-* Dependency Vulnerability Scanning (SCA)
-* Containerization & Deployment
-
----
-
-## 🏗️ Architecture
-
-```
-Developer → GitHub → Jenkins Pipeline
-                          ↓
-                 SonarQube Analysis (SAST)
-                          ↓
-                     Snyk Scan (SCA)
-                          ↓
-                  Docker Build & Push
+GitHub → Jenkins → Sonar Scanner → SonarQube → Snyk → Docker → DockerHub
 ```
 
 ---
 
-## ⚙️ Prerequisites
+# 🌐 Step 0: Launch VM (AWS / Azure)
 
-### 🔹 Infrastructure
+## 🔹 AWS EC2
 
-* Ubuntu 22.04 EC2 Instance (Min: 4GB RAM, Recommended: 8GB)
-* Open ports:
+1. Go to AWS → EC2 → Launch Instance
+2. Select:
 
-  * 8080 → Jenkins
-  * 9000 → SonarQube
+   * **Ubuntu Server 22.04 LTS**
+   * Instance: **t3.medium or higher (8GB recommended)**
+
+### 🔐 Security Group
+
+Add inbound rules:
+
+| Port | Purpose   |
+| ---- | --------- |
+| 22   | SSH       |
+| 8080 | Jenkins   |
+| 9000 | SonarQube |
 
 ---
 
-## 🔧 Step 1: Install Jenkins(FOllow .sh file)
+## 🔹 Azure VM
+
+1. Go to Azure → Virtual Machines → Create
+2. Select:
+
+   * Ubuntu 22.04
+   * Size: B2s or higher
+
+### 🔐 Open Ports
+
+Add:
+
+* 22
+* 8080
+* 9000
+
+---
+
+# 🔐 Step 1: Connect to VM
 
 ```bash
-sudo apt update -y
-sudo apt install -y openjdk-21-jdk
-
-echo "deb [trusted=yes] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list
-
-sudo apt update -y
-sudo apt install -y jenkins
-
-sudo systemctl enable jenkins
-sudo systemctl start jenkins
+ssh -i <key.pem> ubuntu@<PUBLIC-IP>
 ```
-
-👉 Access: `http://<EC2-IP>:8080`
 
 ---
 
-## 🔧 Step 2: Install SonarQube
+# 🔧 Step 2: Install Jenkins (Using Script)
 
-Use your script or:
+## 📂 Create Script
 
 ```bash
+vi jenkins_fresh_install.sh
+```
+
+👉 Press `i` → paste Jenkins script → `ESC` → `:wq`
+
+---
+
+## ▶️ Run Script
+
+```bash
+chmod +x jenkins_fresh_install.sh
+sudo ./jenkins_fresh_install.sh
+```
+
+---
+
+## 🌐 Access Jenkins
+
+```
+http://<PUBLIC-IP>:8080
+```
+
+---
+
+## 🔑 Get Password
+
+```bash
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+---
+
+# 🔧 Step 3: Install SonarQube (Server)
+
+## 📂 Create Script
+
+```bash
+vi sonar.sh
+```
+
+---
+
+## ▶️ Run Script
+
+```bash
+chmod +x sonar.sh
 sudo ./sonar.sh
 ```
 
-👉 Access: `http://<EC2-IP>:9000`
-👉 Default Login: `admin/admin`
+---
+
+## 🌐 Access SonarQube
+
+```
+http://<PUBLIC-IP>:9000
+```
+
+Login:
+
+```
+admin / admin
+```
 
 ---
 
-## 🔧 Step 3: Install Required Tools
+# 🧠 SonarQube vs Sonar Scanner (IMPORTANT)
+
+### 🔹 SonarQube
+
+* Web UI (port 9000)
+* Stores results
+* Dashboard
+
+### 🔹 Sonar Scanner
+
+* CLI tool
+* Reads code
+* Sends analysis to SonarQube
+
+---
+
+## 🎯 Flow
+
+```
+Code → Sonar Scanner → SonarQube → Dashboard
+```
+
+👉 Without Scanner → No analysis ❌
+
+---
+
+# 🔧 Step 4: Install Required Tools
 
 ```bash
+sudo apt update
 sudo apt install -y nodejs npm docker.io unzip
 
 sudo systemctl start docker
@@ -89,19 +171,23 @@ sudo systemctl restart jenkins
 
 ---
 
-## 🔧 Step 4: Install Sonar Scanner
+# 🔧 Step 5: Install Sonar Scanner
 
 ```bash
 cd /opt
+
 sudo wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.0.0.4432-linux.zip
+
 sudo unzip sonar-scanner-cli-*.zip
+
 sudo mv sonar-scanner-* sonar-scanner
+
 sudo chmod -R 755 sonar-scanner
 ```
 
 ---
 
-## 🔧 Step 5: Install Snyk
+# 🔧 Step 6: Install Snyk
 
 ```bash
 sudo npm install -g snyk
@@ -109,27 +195,35 @@ sudo npm install -g snyk
 
 ---
 
-## 🔑 Step 6: Generate Tokens
+# 🔑 Step 7: Generate Tokens
 
-### 🔹 SonarQube Token
+## SonarQube Token
 
-* Go to: SonarQube → My Account → Security → Generate Token
+SonarQube → My Account → Security → Generate Token
 
-### 🔹 Snyk Token
+## Snyk Token
 
-* Login to Snyk → Account Settings → API Token
+Snyk → Account → API Token
 
 ---
 
-## 📦 Step 7: Jenkins Pipeline Setup
+# ⚙️ Step 8: Jenkins Setup
 
 1. Open Jenkins
-2. Create New Item → Pipeline
-3. Paste below Jenkinsfile
+2. Install suggested plugins
+3. Create admin user
 
 ---
 
-## 📜 Jenkinsfile
+# 📦 Step 9: Create Pipeline
+
+1. Click **New Item**
+2. Select **Pipeline**
+3. Paste Jenkinsfile
+
+---
+
+# 📜 Jenkinsfile
 
 ```groovy
 pipeline {
@@ -138,22 +232,16 @@ pipeline {
     environment {
         DOCKER_IMAGE = "your-dockerhub-username/app"
         DOCKER_TAG = "latest"
-        SONAR_HOST_URL = "http://<EC2-IP>:9000"
-        SONAR_AUTH_TOKEN = "your-sonar-token"
+        SONAR_HOST_URL = "http://<IP>:9000"
+        SONAR_TOKEN = "your-sonar-token"
         SNYK_TOKEN = "your-snyk-token"
-        DOCKER_CREDS_USR = "your-dockerhub-username"
-        DOCKER_CREDS_PSW = "your-dockerhub-password"
     }
 
     stages {
 
         stage('Check Tools') {
             steps {
-                sh '''
-                node -v
-                npm -v
-                docker -v
-                '''
+                sh 'node -v && npm -v && docker -v'
             }
         }
 
@@ -173,12 +261,11 @@ pipeline {
             steps {
                 sh '''
                 export PATH=$PATH:/opt/sonar-scanner/bin
-
                 sonar-scanner \
                   -Dsonar.projectKey=my-node-app \
                   -Dsonar.sources=. \
                   -Dsonar.host.url=$SONAR_HOST_URL \
-                  -Dsonar.login=$SONAR_AUTH_TOKEN
+                  -Dsonar.login=$SONAR_TOKEN
                 '''
             }
         }
@@ -207,53 +294,58 @@ pipeline {
 
 ---
 
-## ▶️ Step 8: Run Pipeline
+# ▶️ Step 10: Run Pipeline
 
-* Click **Build Now**
-* Monitor Console Output
-
----
-
-## ✅ Expected Output
-
-* SonarQube Analysis Successful
-* Snyk Vulnerability Report
-* Docker Image Pushed to DockerHub
-
----
-
-## 📊 Results
-
-| Tool      | Purpose               |
-| --------- | --------------------- |
-| Jenkins   | CI/CD                 |
-| SonarQube | Code Quality (SAST)   |
-| Snyk      | Dependency Scan (SCA) |
-| Docker    | Containerization      |
-
----
-
-## ⚠️ Best Practices
-
-* Use Jenkins Credentials (avoid hardcoding secrets)
-* Use NodeJS ≥ 18
-* Use DockerHub tokens instead of passwords
-* Enable Webhooks for automation
-
----
-
-## 🚀 Future Enhancements
-
-* ArgoCD Deployment
-* Kubernetes Integration
-* Helm Charts
-* Blue-Green Deployment
-
----
-
-## 👨‍💻 Author
-
-Rajco DevSecOps Pipeline Project
+Click:
 
 ```
+Build Now
 ```
+
+---
+
+# ✅ Expected Output
+
+✔ SonarQube Analysis Successful
+✔ Snyk Scan Completed
+✔ Docker Image Pushed
+
+---
+
+# ⚠️ Troubleshooting
+
+## Jenkins not starting
+
+```bash
+sudo systemctl status jenkins
+```
+
+## SonarQube not starting
+
+```bash
+sudo systemctl status sonarqube
+```
+
+👉 Wait 1–2 mins for first startup
+
+---
+
+## Permission errors
+
+```bash
+sudo ./script.sh
+```
+
+---
+
+# 🎯 Final Flow
+
+```
+Launch VM → Install Jenkins → Install SonarQube → Install Scanner → Run Pipeline
+```
+
+---
+
+# 👨‍💻 Author
+
+Rajco DevSecOps Project
